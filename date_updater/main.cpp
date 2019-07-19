@@ -5,34 +5,35 @@ namespace fs = std::filesystem;
 
 int main( int argc, char* argv[] )
 {
-	if(argc < 2)
-	{
-		std::cerr << "Usage: date_updater <file_path|folder_path>" << std::endl;
+	fs::path file_directory{ fs::current_path() }; // The current path by default
 
-		return -1;
-	}
+	if(argc >= 2) // No argument provided
+		file_directory = fs::path( argv[1] );
 
-	if((fs::is_directory( argv[1] ) && !fs::is_empty( argv[1] )))
-	{
-		for(auto& entry : fs::recursive_directory_iterator( argv[1] ))
-		{
-			std::error_code error;
-			fs::last_write_time( entry, fs::file_time_type::clock::now(), error );
-
-			if(error)
-				std::cerr << "[ERROR] An error has occured while setting the date for" << ' ' <<
-				entry.path().string() << std::endl;
-		}
-	}
-
-	if(fs::is_regular_file( argv[1] ))
+	if(fs::is_regular_file( file_directory ))
 	{
 		std::error_code error;
-		fs::last_write_time( argv[1], fs::file_time_type::clock::now(), error );
+		fs::last_write_time( file_directory, fs::file_time_type::clock::now(), error );
 
 		if(error)
 			std::cerr << "[ERROR] An error has occured while setting the date for" << ' ' <<
-			argv[1] << std::endl;
+			file_directory << std::endl;
+	}
+
+	if((fs::is_directory( file_directory ) && !fs::is_empty( file_directory )))
+	{
+		for(auto& entry : fs::recursive_directory_iterator( file_directory ))
+		{
+			if(entry.path().filename().compare( fs::path( argv[0] ).filename() ) != 0x0) // Skip the tool
+			{
+				std::error_code error;
+				fs::last_write_time( entry, fs::file_time_type::clock::now(), error );
+
+				if(error)
+					std::cerr << "[ERROR] An error has occured while setting the date for" << ' ' <<
+					entry.path().string() << std::endl;
+			}
+		}
 	}
 
 	return 0;
